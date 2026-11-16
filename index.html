@@ -1,332 +1,553 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>Run The Block</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:#06060e;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;
-    height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none;
-  }
-  #wrap{position:relative;width:100%;max-width:960px;border-radius:12px;overflow:hidden;box-shadow:0 0 50px rgba(0,200,255,.12)}
-  canvas{display:block;width:100%;background:#0a0a16;touch-action:none}
-  #ui{position:absolute;top:0;left:0;right:0;padding:12px 16px;display:flex;justify-content:space-between;pointer-events:none;z-index:10}
-  .box{background:rgba(0,0,0,.6);backdrop-filter:blur(8px);padding:7px 14px;border-radius:10px;border:1px solid rgba(0,200,255,.25);font-weight:800;font-size:.95rem}
-  .box span{color:#00e5ff}
-  #overlay{
-    position:absolute;inset:0;background:rgba(4,4,12,.94);display:flex;flex-direction:column;
-    align-items:center;justify-content:center;z-index:20;text-align:center;padding:20px;overflow-y:auto
-  }
-  #overlay.hidden{display:none}
-  h1{font-size:clamp(2rem,7vw,3.2rem);font-weight:900;background:linear-gradient(135deg,#00e5ff,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
-  .sub{color:#7a8a9a;margin-bottom:16px}
-  .btn{background:linear-gradient(135deg,#00c4ff,#7c3aed);color:#fff;border:none;padding:13px 32px;font-size:1.1rem;font-weight:800;border-radius:12px;cursor:pointer;margin:6px;transition:.15s}
-  .btn:hover{transform:translateY(-2px);box-shadow:0 6px 25px rgba(0,196,255,.4)}
-  .btn.sec{background:transparent;border:2px solid #334;color:#aac}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:9px;max-width:540px;width:100%;margin:12px 0 16px}
-  .lvl{background:#141424;border:2px solid #2a2a42;border-radius:11px;padding:12px 6px;color:#ccd;font-weight:700;cursor:pointer;font-size:.88rem;transition:.15s}
-  .lvl:hover:not(.lock){border-color:#00e5ff;color:#00e5ff}
-  .lvl.lock{opacity:.35;cursor:not-allowed}
-  .lvl.done{border-color:#22c55e;color:#4ade80}
-  .lvl.sel{border-color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.35)}
-  #mobile{display:none;position:absolute;bottom:16px;left:0;right:0;justify-content:center;gap:50px;z-index:15}
-  #mobile button{width:64px;height:64px;border-radius:50%;border:3px solid rgba(0,200,255,.5);background:rgba(0,0,0,.55);color:#fff;font-size:1.4rem;font-weight:900}
-  @media(max-width:700px){#mobile{display:flex}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Run The Block</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      color: #fff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+    #wrap {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      background: #16213e;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      background: #0f3460;
+      touch-action: none;
+    }
+    #ui {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .box {
+      background: rgba(0,0,0,0.55);
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .box span { color: #e94560; }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: #1a1a2e;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      padding: 20px 16px 40px;
+    }
+    #overlay.hidden { display: none; }
+
+    h1 {
+      font-size: clamp(1.8rem, 6vw, 2.8rem);
+      font-weight: 900;
+      color: #e94560;
+      margin-bottom: 4px;
+      text-shadow: 0 2px 0 #0f3460;
+    }
+    .sub { color: #a2a8d3; margin-bottom: 18px; font-size: 0.95rem; }
+
+    .floorplan {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      height: 380px;
+      background: #16213e;
+      border: 4px solid #0f3460;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .floorplan-bg {
+      position: absolute;
+      inset: 0;
+      background: 
+        repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(255,255,255,0.04) 19px, rgba(255,255,255,0.04) 20px),
+        repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(255,255,255,0.04) 19px, rgba(255,255,255,0.04) 20px);
+    }
+    .node {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #0f3460;
+      border: 3px solid #a2a8d3;
+      color: #fff;
+      font-weight: 900;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s;
+      z-index: 5;
+    }
+    .node:hover:not(.locked) {
+      transform: scale(1.15);
+      border-color: #e94560;
+      background: #e94560;
+    }
+    .node.selected {
+      background: #e94560;
+      border-color: #fff;
+      box-shadow: 0 0 0 4px rgba(233,69,96,0.4);
+    }
+    .node.locked {
+      opacity: 0.35;
+      cursor: not-allowed;
+      background: #333;
+      border-color: #555;
+    }
+    .node.done {
+      background: #16c79a;
+      border-color: #0f9b7a;
+    }
+    .node-label {
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      white-space: nowrap;
+      color: #a2a8d3;
+      font-weight: 600;
+    }
+
+    .selected-info {
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 12px;
+      padding: 12px 20px;
+      margin-bottom: 16px;
+      text-align: center;
+      min-width: 220px;
+    }
+    .selected-info strong { color: #e94560; font-size: 1.15rem; }
+
+    .btn {
+      background: #e94560;
+      color: #fff;
+      border: none;
+      padding: 14px 36px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.15s;
+      box-shadow: 0 4px 0 #c73a52;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #c73a52; }
+    .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #c73a52; }
+    .btn.sec {
+      background: transparent;
+      border: 2px solid #a2a8d3;
+      color: #a2a8d3;
+      box-shadow: none;
+      margin-top: 10px;
+    }
+
+    #mobile {
+      display: none;
+      position: absolute;
+      bottom: 16px;
+      left: 0; right: 0;
+      justify-content: center;
+      gap: 40px;
+      z-index: 15;
+    }
+    #mobile button {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      border: 3px solid rgba(233,69,96,0.6);
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 900;
+    }
+    @media (max-width: 700px) {
+      #mobile { display: flex; }
+      .floorplan { height: 320px; }
+    }
+  </style>
 </head>
 <body>
-<div id="wrap">
-  <canvas id="c" width="900" height="500"></canvas>
-  <div id="ui">
-    <div class="box">COURSE <span id="cn">1</span></div>
-    <div class="box">SCORE <span id="sc">0</span></div>
-    <div class="box">BEST <span id="bs">0</span></div>
-  </div>
-  <div id="mobile">
-    <button id="left">◀</button>
-    <button id="jump">▲</button>
-    <button id="right">▶</button>
-  </div>
-  <div id="overlay">
-    <h1>RUN THE BLOCK</h1>
-    <div class="sub">15 Courses • Move + Jump Parkour</div>
-    <div class="grid" id="grid"></div>
-    <button class="btn" id="play">PLAY COURSE</button>
-    <div style="margin-top:12px;font-size:.82rem;color:#667">
-      A/D or Arrows = Move • Space / W = Jump
+  <div id="wrap">
+    <canvas id="c" width="900" height="500"></canvas>
+
+    <div id="ui">
+      <div class="box">COURSE <span id="cn">1</span></div>
+      <div class="box">SCORE <span id="sc">0</span></div>
+      <div class="box">BEST <span id="bs">0</span></div>
+    </div>
+
+    <div id="mobile">
+      <button id="left">◀</button>
+      <button id="jump">▲</button>
+      <button id="right">▶</button>
+    </div>
+
+    <div id="overlay">
+      <h1>RUN THE BLOCK</h1>
+      <div class="sub">Select a course on the floor plan</div>
+
+      <div class="floorplan" id="floorplan">
+        <div class="floorplan-bg"></div>
+      </div>
+
+      <div class="selected-info">
+        Selected: <strong id="selName">Tutorial</strong>
+      </div>
+
+      <button class="btn" id="playBtn">PLAY COURSE</button>
     </div>
   </div>
-</div>
 
-<script>
-const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
-const overlay=document.getElementById('overlay'),grid=document.getElementById('grid');
-const playBtn=document.getElementById('play');
-const scEl=document.getElementById('sc'),bsEl=document.getElementById('bs'),cnEl=document.getElementById('cn');
+  <script>
+    const COURSES = [
+      { id:1,  name:"Tutorial",     color:"#4ade80", gapMin:55, gapMax:80,  obs:0.12, platW:[140,200], yRange:[300,380] },
+      { id:2,  name:"Rooftops",     color:"#60a5fa", gapMin:65, gapMax:95,  obs:0.18, platW:[120,180], yRange:[280,370] },
+      { id:3,  name:"Alley Jump",   color:"#f472b6", gapMin:70, gapMax:100, obs:0.22, platW:[100,160], yRange:[270,360] },
+      { id:4,  name:"Sky Bridge",   color:"#a78bfa", gapMin:75, gapMax:110, obs:0.25, platW:[110,170], yRange:[260,350] },
+      { id:5,  name:"Freight Yard", color:"#fb923c", gapMin:70, gapMax:105, obs:0.28, platW:[130,190], yRange:[290,380] },
+      { id:6,  name:"High Rise",    color:"#34d399", gapMin:80, gapMax:115, obs:0.30, platW:[100,150], yRange:[250,340] },
+      { id:7,  name:"Subway",       color:"#38bdf8", gapMin:75, gapMax:110, obs:0.32, platW:[120,170], yRange:[300,390] },
+      { id:8,  name:"Billboards",   color:"#e879f9", gapMin:85, gapMax:120, obs:0.35, platW:[95,145],  yRange:[260,350] },
+      { id:9,  name:"Crane Climb",  color:"#fbbf24", gapMin:80, gapMax:125, obs:0.38, platW:[90,140],  yRange:[240,330] },
+      { id:10, name:"Night Market", color:"#f87171", gapMin:90, gapMax:130, obs:0.40, platW:[100,155], yRange:[270,360] },
+      { id:11, name:"Broken Bridge",color:"#2dd4bf", gapMin:95, gapMax:135, obs:0.43, platW:[85,135],  yRange:[250,340] },
+      { id:12, name:"Tower Run",    color:"#818cf8", gapMin:90, gapMax:140, obs:0.46, platW:[90,140],  yRange:[230,320] },
+      { id:13, name:"Void District",color:"#c084fc", gapMin:100,gapMax:145, obs:0.50, platW:[80,130],  yRange:[240,330] },
+      { id:14, name:"Apex",         color:"#fb7185", gapMin:105,gapMax:150, obs:0.53, platW:[80,125],  yRange:[230,320] },
+      { id:15, name:"Final Block",  color:"#e94560", gapMin:110,gapMax:160, obs:0.58, platW:[75,120],  yRange:[220,310] }
+    ];
 
-const COURSES=[
-  {id:1,name:"Tutorial",speed:0,gap:60,obs:0.15},
-  {id:2,name:"Rooftops",speed:0,gap:70,obs:0.2},
-  {id:3,name:"Neon Alley",speed:0,gap:75,obs:0.25},
-  {id:4,name:"Skyline",speed:0,gap:80,obs:0.28},
-  {id:5,name:"Freight",speed:0,gap:85,obs:0.32},
-  {id:6,name:"Highrise",speed:0,gap:90,obs:0.35},
-  {id:7,name:"Subway",speed:0,gap:95,obs:0.38},
-  {id:8,name:"Billboards",speed:0,gap:100,obs:0.4},
-  {id:9,name:"Cranes",speed:0,gap:105,obs:0.43},
-  {id:10,name:"Night Market",speed:0,gap:110,obs:0.46},
-  {id:11,name:"Bridge",speed:0,gap:115,obs:0.5},
-  {id:12,name:"Towers",speed:0,gap:120,obs:0.52},
-  {id:13,name:"Void",speed:0,gap:125,obs:0.55},
-  {id:14,name:"Apex",speed:0,gap:130,obs:0.58},
-  {id:15,name:"Final Block",speed:0,gap:140,obs:0.62}
-];
+    const NODE_POS = [
+      {x:12, y:75}, {x:28, y:60}, {x:18, y:40}, {x:35, y:28},
+      {x:48, y:42}, {x:55, y:65}, {x:68, y:78}, {x:78, y:55},
+      {x:70, y:32}, {x:85, y:22}, {x:42, y:18}, {x:58, y:12},
+      {x:25, y:15}, {x:88, y:45}, {x:50, y:85}
+    ];
 
-let unlocked=+localStorage.getItem('rtb2_unl')||1;
-let selected=1;
-let best=+localStorage.getItem('rtb2_best')||0;
-bsEl.textContent=best;
+    let unlocked = parseInt(localStorage.getItem('rtb3_unl') || '1');
+    let selected = 1;
+    let best = parseInt(localStorage.getItem('rtb3_best') || '0');
+    document.getElementById('bs').textContent = best;
 
-let running=false,score=0,frame=0,course=COURSES[0];
-const player={x:120,y:300,w:28,h:38,vx:0,vy:0,onGround:false,jumps:0};
-let plats=[],obs=[],coins=[],builds=[];
-const keys={};
+    let running = false;
+    let score = 0;
+    let frame = 0;
+    let course = COURSES[0];
 
-// sounds
-const actx=new(window.AudioContext||window.webkitAudioContext)();
-function beep(f,d,t='square',v=0.07){const o=actx.createOscillator(),g=actx.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(actx.destination);o.start();g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+d);o.stop(actx.currentTime+d)}
-function sJump(){beep(400,0.07);beep(560,0.05)}
-function sCoin(){beep(900,0.06,'sine',0.09);beep(1200,0.07,'sine',0.07)}
-function sDie(){beep(160,0.3,'sawtooth',0.09)}
-function sWin(){beep(523,0.1);setTimeout(()=>beep(659,0.1),90);setTimeout(()=>beep(784,0.18),180)}
+    const player = { x: 130, y: 300, w: 28, h: 38, vx: 0, vy: 0, onGround: false, jumps: 0 };
+    let plats = [], obs = [], coins = [], builds = [];
+    const keys = {};
 
-function renderGrid(){
-  grid.innerHTML=COURSES.map(c=>{
-    const lock=c.id>unlocked,done=c.id<unlocked,sel=c.id===selected;
-    return `<button class="lvl ${lock?'lock':''} ${done?'done':''} ${sel?'sel':''}" ${lock?'disabled':''} onclick="selCourse(${c.id})">${c.id}<br><span style="font-size:.68rem">${c.name}</span></button>`;
-  }).join('');
-}
-window.selCourse=id=>{if(id>unlocked)return;selected=id;renderGrid()};
-renderGrid();
-
-// input
-window.addEventListener('keydown',e=>{
-  keys[e.code]=true;
-  if(['Space','KeyW','ArrowUp'].includes(e.code)){e.preventDefault();jump()}
-});
-window.addEventListener('keyup',e=>keys[e.code]=false);
-canvas.addEventListener('mousedown',jump);
-document.getElementById('jump').addEventListener('touchstart',e=>{e.preventDefault();jump()},{passive:false});
-document.getElementById('left').addEventListener('touchstart',e=>{e.preventDefault();keys.ArrowLeft=true},{passive:false});
-document.getElementById('left').addEventListener('touchend',()=>keys.ArrowLeft=false);
-document.getElementById('right').addEventListener('touchstart',e=>{e.preventDefault();keys.ArrowRight=true},{passive:false});
-document.getElementById('right').addEventListener('touchend',()=>keys.ArrowRight=false);
-
-function jump(){
-  if(!running)return;
-  if(player.jumps<2){
-    player.vy=-12.2;
-    player.jumps++;
-    player.onGround=false;
-    sJump();
-  }
-}
-
-function build(){
-  plats=[{x:0,y:380,w:420,h:120}];
-  obs=[];coins=[];builds=[];
-  let x=420;
-  for(let i=0;i<28;i++){
-    const gap=course.gap+Math.random()*50;
-    x+=gap;
-    const w=100+Math.random()*150;
-    const y=280+Math.random()*120;
-    plats.push({x,y,w,h:500-y});
-    if(Math.random()<course.obs && w>120){
-      obs.push({x:x+20+Math.random()*(w-50),y:y-24,w:20,h:24});
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep(f, d, t='square', v=0.07) {
+      try {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = t; o.frequency.value = f; g.gain.value = v;
+        o.connect(g); g.connect(actx.destination);
+        o.start(); g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + d);
+        o.stop(actx.currentTime + d);
+      } catch(e){}
     }
-    if(Math.random()<0.55){
-      coins.push({x:x+w/2,y:y-48-Math.random()*35,r:8,got:false});
+    function sJump(){ beep(380,0.07); beep(520,0.05); }
+    function sCoin(){ beep(880,0.06,'sine',0.09); beep(1200,0.07,'sine',0.07); }
+    function sDie(){ beep(150,0.28,'sawtooth',0.09); }
+    function sWin(){ beep(523,0.1); setTimeout(()=>beep(659,0.1),90); setTimeout(()=>beep(784,0.18),180); }
+
+    function buildFloorPlan() {
+      const fp = document.getElementById('floorplan');
+      fp.querySelectorAll('.node').forEach(el => el.remove());
+
+      NODE_POS.forEach((pos, i) => {
+        const c = COURSES[i];
+        const node = document.createElement('div');
+        node.className = 'node';
+        if (c.id > unlocked) node.classList.add('locked');
+        if (c.id < unlocked) node.classList.add('done');
+        if (c.id === selected) node.classList.add('selected');
+        node.style.left = `calc(${pos.x}% - 21px)`;
+        node.style.top  = `calc(${pos.y}% - 21px)`;
+        node.style.background = (c.id <= unlocked) ? c.color : '#333';
+        node.textContent = c.id;
+        node.onclick = () => selectCourse(c.id);
+
+        const label = document.createElement('div');
+        label.className = 'node-label';
+        label.textContent = c.name;
+        node.appendChild(label);
+        fp.appendChild(node);
+      });
     }
-    x+=w;
-  }
-  for(let i=0;i<16;i++){
-    builds.push({x:i*210-60,w:80+Math.random()*100,h:130+Math.random()*190,col:`hsl(220,22%,${6+Math.random()*8}%)`});
-  }
-}
 
-function start(){
-  course=COURSES[selected-1];
-  cnEl.textContent=course.id;
-  running=true;score=0;frame=0;
-  player.x=120;player.y=300;player.vx=0;player.vy=0;player.jumps=0;
-  build();
-  overlay.classList.add('hidden');
-  scEl.textContent='0';
-  requestAnimationFrame(loop);
-}
-
-function die(win=false){
-  running=false;
-  if(score>best){best=score;localStorage.setItem('rtb2_best',best);bsEl.textContent=best}
-  if(win && selected===unlocked && unlocked<15){
-    unlocked++;localStorage.setItem('rtb2_unl',unlocked);sWin();
-  } else if(!win) sDie();
-
-  overlay.innerHTML=`
-    <h1>${win?'COURSE CLEAR':'RUN OVER'}</h1>
-    <div style="font-size:1.25rem;color:#00e5ff;margin:10px 0 16px;font-weight:700">Score: ${score}</div>
-    <button class="btn" onclick="location.reload()">COURSES</button>
-    <button class="btn sec" onclick="start()">RETRY</button>`;
-  overlay.classList.remove('hidden');
-  renderGrid();
-}
-
-function loop(){
-  if(!running)return;
-  frame++;
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-
-function update(){
-  // movement
-  player.vx=0;
-  if(keys.ArrowLeft||keys.KeyA) player.vx=-5.2;
-  if(keys.ArrowRight||keys.KeyD) player.vx=5.2;
-  player.x+=player.vx;
-  player.vy+=0.58;
-  player.y+=player.vy;
-
-  // camera follow (simple)
-  const cam=player.x-180;
-  plats.forEach(p=>p.x-=cam*0.02); // slight parallax feel, mainly player moves
-
-  // actually move world relative so player stays mid-left
-  const shift=player.x-160;
-  if(shift>0){
-    player.x=160;
-    plats.forEach(p=>p.x-=shift);
-    obs.forEach(o=>o.x-=shift);
-    coins.forEach(c=>c.x-=shift);
-    builds.forEach(b=>b.x-=shift*0.3);
-  }
-
-  // clean
-  plats=plats.filter(p=>p.x+p.w>-30);
-  obs=obs.filter(o=>o.x>-30);
-  coins=coins.filter(c=>c.x>-30);
-
-  // extend
-  const last=plats[plats.length-1];
-  if(last && last.x<1100){
-    let x=last.x+last.w;
-    for(let i=0;i<5;i++){
-      const gap=course.gap+Math.random()*55;
-      x+=gap;
-      const w=95+Math.random()*140;
-      const y=270+Math.random()*130;
-      plats.push({x,y,w,h:500-y});
-      if(Math.random()<course.obs&&w>110) obs.push({x:x+15+Math.random()*(w-40),y:y-24,w:20,h:24});
-      if(Math.random()<0.5) coins.push({x:x+w/2,y:y-45-Math.random()*40,r:8,got:false});
-      x+=w;
+    function selectCourse(id) {
+      if (id > unlocked) return;
+      selected = id;
+      document.getElementById('selName').textContent = COURSES[id-1].name;
+      buildFloorPlan();
     }
-  }
 
-  // collide platforms
-  player.onGround=false;
-  for(const p of plats){
-    if(player.x+player.w>p.x+2 && player.x<p.x+p.w-2){
-      if(player.vy>=0 && player.y+player.h>=p.y && player.y+player.h<=p.y+16){
-        player.y=p.y-player.h;
-        player.vy=0;
-        player.onGround=true;
-        player.jumps=0;
+    buildFloorPlan();
+    document.getElementById('selName').textContent = COURSES[0].name;
+
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (['Space','KeyW','ArrowUp'].includes(e.code)) {
+        e.preventDefault();
+        jump();
+      }
+    });
+    window.addEventListener('keyup', e => keys[e.code] = false);
+
+    canvas.addEventListener('mousedown', jump);
+    document.getElementById('jump').addEventListener('touchstart', e => { e.preventDefault(); jump(); }, {passive:false});
+    document.getElementById('left').addEventListener('touchstart', e => { e.preventDefault(); keys.ArrowLeft = true; }, {passive:false});
+    document.getElementById('left').addEventListener('touchend', () => keys.ArrowLeft = false);
+    document.getElementById('right').addEventListener('touchstart', e => { e.preventDefault(); keys.ArrowRight = true; }, {passive:false});
+    document.getElementById('right').addEventListener('touchend', () => keys.ArrowRight = false);
+
+    function jump() {
+      if (!running) return;
+      if (player.jumps < 2) {
+        player.vy = -12.4;
+        player.jumps++;
+        player.onGround = false;
+        sJump();
       }
     }
-  }
 
-  // obstacles
-  for(const o of obs){
-    if(player.x+player.w>o.x+2 && player.x<o.x+o.w-2 && player.y+player.h>o.y+2 && player.y<o.y+o.h){
-      die(false);return;
+    function buildWorld() {
+      plats = [{ x: 0, y: 380, w: 400, h: 120 }];
+      obs = [];
+      coins = [];
+      builds = [];
+
+      let x = 400;
+      for (let i = 0; i < 32; i++) {
+        const gap = course.gapMin + Math.random() * (course.gapMax - course.gapMin);
+        x += gap;
+        const w = course.platW[0] + Math.random() * (course.platW[1] - course.platW[0]);
+        const y = course.yRange[0] + Math.random() * (course.yRange[1] - course.yRange[0]);
+        plats.push({ x, y, w, h: 500 - y });
+
+        if (Math.random() < course.obs && w > 110) {
+          obs.push({ x: x + 15 + Math.random() * (w - 40), y: y - 24, w: 20, h: 24 });
+        }
+        if (Math.random() < 0.55) {
+          coins.push({ x: x + w/2, y: y - 45 - Math.random()*35, r: 8, got: false });
+        }
+        x += w;
+      }
+
+      for (let i = 0; i < 14; i++) {
+        builds.push({
+          x: i * 220 - 40,
+          w: 90 + Math.random() * 110,
+          h: 120 + Math.random() * 180,
+          col: `hsl(${200 + Math.random()*40}, 25%, ${12 + Math.random()*10}%)`
+        });
+      }
     }
-  }
 
-  // coins
-  for(const c of coins){
-    if(!c.got && Math.hypot(player.x+player.w/2-c.x,player.y+player.h/2-c.y)<24){
-      c.got=true;score+=35;sCoin();
+    function start() {
+      course = COURSES[selected - 1];
+      document.getElementById('cn').textContent = course.id;
+      running = true;
+      score = 0;
+      frame = 0;
+      player.x = 130; player.y = 300; player.vx = 0; player.vy = 0; player.jumps = 0;
+      buildWorld();
+      document.getElementById('overlay').classList.add('hidden');
+      document.getElementById('sc').textContent = '0';
+      requestAnimationFrame(loop);
     }
-  }
 
-  if(frame%6===0) score+=1;
-  scEl.textContent=score;
+    function die(win = false) {
+      running = false;
 
-  // win after enough score
-  if(score>=350+selected*70){die(true);return}
-  if(player.y>540){die(false);return}
-}
+      if (score > best) {
+        best = score;
+        localStorage.setItem('rtb3_best', best);
+        document.getElementById('bs').textContent = best;
+      }
+      if (win && selected === unlocked && unlocked < 15) {
+        unlocked++;
+        localStorage.setItem('rtb3_unl', unlocked);
+        sWin();
+      } else if (!win) sDie();
 
-function draw(){
-  const g=ctx.createLinearGradient(0,0,0,500);
-  g.addColorStop(0,'#080812');g.addColorStop(1,'#121228');
-  ctx.fillStyle=g;ctx.fillRect(0,0,900,500);
+      const ov = document.getElementById('overlay');
+      ov.innerHTML = `
+        <h1>${win ? 'COURSE CLEAR!' : 'TRY AGAIN'}</h1>
+        <div style="font-size:1.3rem;color:#e94560;margin:12px 0 20px;font-weight:800">Score: ${score}</div>
+        <button class="btn" onclick="location.reload()">MAP</button>
+        <button class="btn sec" onclick="start()">RETRY</button>
+      `;
+      ov.classList.remove('hidden');
+    }
 
-  // stars
-  ctx.fillStyle='rgba(255,255,255,.4)';
-  for(let i=0;i<30;i++){
-    ctx.beginPath();
-    ctx.arc((i*97+frame*.12)%900,(i*41)%240,1.1,0,7);
-    ctx.fill();
-  }
+    function loop() {
+      if (!running) return;
+      frame++;
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
 
-  // buildings
-  builds.forEach(b=>{
-    ctx.fillStyle=b.col;
-    ctx.fillRect(b.x,500-b.h,b.w,b.h);
-    ctx.fillStyle='rgba(255,200,60,.1)';
-    for(let y=500-b.h+10;y<480;y+=18)
-      for(let x=b.x+6;x<b.x+b.w-6;x+=14)
-        if(Math.random()>.4) ctx.fillRect(x,y,6,8);
-  });
+    function update() {
+      player.vx = 0;
+      if (keys.ArrowLeft || keys.KeyA) player.vx = -5.3;
+      if (keys.ArrowRight || keys.KeyD) player.vx = 5.3;
+      player.x += player.vx;
+      player.vy += 0.58;
+      player.y += player.vy;
 
-  // platforms
-  plats.forEach(p=>{
-    ctx.fillStyle='#151528';
-    ctx.fillRect(p.x,p.y,p.w,p.h);
-    ctx.fillStyle='#00e5ff';
-    ctx.fillRect(p.x,p.y,p.w,3);
-  });
+      const shift = player.x - 160;
+      if (shift > 0) {
+        player.x = 160;
+        plats.forEach(p => p.x -= shift);
+        obs.forEach(o => o.x -= shift);
+        coins.forEach(c => c.x -= shift);
+        builds.forEach(b => b.x -= shift * 0.3);
+      }
 
-  // spikes
-  obs.forEach(o=>{
-    ctx.fillStyle='#ff2d55';
-    ctx.beginPath();
-    ctx.moveTo(o.x,o.y+o.h);
-    ctx.lineTo(o.x+o.w/2,o.y);
-    ctx.lineTo(o.x+o.w,o.y+o.h);
-    ctx.fill();
-  });
+      plats = plats.filter(p => p.x + p.w > -40);
+      obs = obs.filter(o => o.x > -40);
+      coins = coins.filter(c => c.x > -40);
 
-  // coins
-  coins.forEach(c=>{
-    if(c.got)return;
-    ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,7);
-    ctx.fillStyle='#ffd700';ctx.fill();
-  });
+      const last = plats[plats.length - 1];
+      if (last && last.x < 1100) {
+        let x = last.x + last.w;
+        for (let i = 0; i < 5; i++) {
+          const gap = course.gapMin + Math.random() * (course.gapMax - course.gapMin);
+          x += gap;
+          const w = course.platW[0] + Math.random() * (course.platW[1] - course.platW[0]);
+          const y = course.yRange[0] + Math.random() * (course.yRange[1] - course.yRange[0]);
+          plats.push({ x, y, w, h: 500 - y });
+          if (Math.random() < course.obs && w > 100) {
+            obs.push({ x: x + 12 + Math.random() * (w - 35), y: y - 24, w: 20, h: 24 });
+          }
+          if (Math.random() < 0.5) {
+            coins.push({ x: x + w/2, y: y - 42 - Math.random()*35, r: 8, got: false });
+          }
+          x += w;
+        }
+      }
 
-  // player
-  ctx.fillStyle='#00e5ff';
-  ctx.fillRect(player.x,player.y,player.w,player.h);
-  ctx.fillStyle='#fff';
-  ctx.fillRect(player.x+5,player.y+6,16,6);
-}
+      player.onGround = false;
+      for (const p of plats) {
+        if (player.x + player.w > p.x + 2 && player.x < p.x + p.w - 2) {
+          if (player.vy >= 0 && player.y + player.h >= p.y && player.y + player.h <= p.y + 16) {
+            player.y = p.y - player.h;
+            player.vy = 0;
+            player.onGround = true;
+            player.jumps = 0;
+          }
+        }
+      }
 
-playBtn.onclick=start;
-</script>
+      for (const o of obs) {
+        if (player.x + player.w > o.x + 2 && player.x < o.x + o.w - 2 &&
+            player.y + player.h > o.y + 2 && player.y < o.y + o.h) {
+          die(false); return;
+        }
+      }
+
+      for (const c of coins) {
+        if (!c.got && Math.hypot(player.x + player.w/2 - c.x, player.y + player.h/2 - c.y) < 24) {
+          c.got = true;
+          score += 35;
+          sCoin();
+        }
+      }
+
+      if (frame % 6 === 0) score += 1;
+      document.getElementById('sc').textContent = score;
+
+      if (score >= 320 + selected * 75) { die(true); return; }
+      if (player.y > 540) { die(false); return; }
+    }
+
+    function draw() {
+      const g = ctx.createLinearGradient(0, 0, 0, 500);
+      g.addColorStop(0, '#1a1a2e');
+      g.addColorStop(1, '#0f3460');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 900, 500);
+
+      builds.forEach(b => {
+        ctx.fillStyle = b.col;
+        ctx.fillRect(b.x, 500 - b.h, b.w, b.h);
+        ctx.fillStyle = 'rgba(255,220,100,0.15)';
+        for (let y = 500 - b.h + 12; y < 480; y += 20) {
+          for (let x = b.x + 8; x < b.x + b.w - 8; x += 16) {
+            if (Math.random() > 0.35) ctx.fillRect(x, y, 7, 9);
+          }
+        }
+      });
+
+      plats.forEach(p => {
+        ctx.fillStyle = '#e94560';
+        ctx.fillRect(p.x, p.y, p.w, 8);
+        ctx.fillStyle = '#16213e';
+        ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
+      });
+
+      obs.forEach(o => {
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.moveTo(o.x, o.y + o.h);
+        ctx.lineTo(o.x + o.w / 2, o.y);
+        ctx.lineTo(o.x + o.w, o.y + o.h);
+        ctx.fill();
+      });
+
+      coins.forEach(c => {
+        if (c.got) return;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        ctx.fillStyle = '#f1c40f';
+        ctx.fill();
+        ctx.strokeStyle = '#e67e22';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = '#e94560';
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(player.x + 5, player.y + 7, 16, 7);
+    }
+
+    document.getElementById('playBtn').onclick = start;
+  </script>
 </body>
 </html>
